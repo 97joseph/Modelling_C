@@ -1,0 +1,589 @@
+1.
+// A simple introductory program; its main window contains a static picture
+// of a triangle, whose three vertices are red, green and blue.  The program
+// illustrates viewing with default viewing parameters only.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+// Clears the current window and draws a triangle.
+void display() {
+
+  // Set every pixel in the frame buffer to the current clear color.
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  // Drawing is done by specifying a sequence of vertices.  The way these
+  // vertices are connected (or not connected) depends on the argument to
+  // glBegin.  GL_POLYGON constructs a filled polygon.
+  glBegin(GL_POLYGON);
+    glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
+    glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
+    glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
+  glEnd();
+
+  // Flush drawing command buffer to make drawing happen as soon as possible.
+  glFlush();
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// enters the main event loop.
+int main(int argc, char** argv) {
+
+  // Use a single buffered window in RGB mode (as opposed to a double-buffered
+  // window or color-index mode).
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+
+  // Position window at (80,80)-(480,380) and give it a title.
+  glutInitWindowPosition(80, 80);
+  glutInitWindowSize(400, 300);
+  glutCreateWindow("A Simple Triangle");
+
+  // Tell GLUT that whenever the main window needs to be repainted that it
+  // should call the function display().
+  glutDisplayFunc(display);
+
+  // Tell GLUT to start reading and processing events.  This function
+  // never returns; the program only exits when the user closes the main
+  // window or kills the process.
+  glutMainLoop();
+}
+2.
+// This is a simple introductory program; its main window contains a static
+// picture of a tetrahedron, whose top vertex is white and whose bottom
+// vertices are red, green and blue.  The program illustrates viewing by
+// defining an object at a convenient location, then transforming it so that
+// it lies within the view volume.  This is a lousy way to do things (it's
+// easier to use gluLookAt()), but it's nice to see how viewing is done at
+// a very low level.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+// Clears the window and draws the tetrahedron.  The tetrahedron is  easily
+// specified with a triangle strip, though the specification really isn't very
+// easy to read.
+void display() {
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  // Draw a white grid "floor" for the tetrahedron to sit on.
+  glColor3f(1.0, 1.0, 1.0);
+  glBegin(GL_LINES);
+  for (GLfloat i = -2.5; i <= 2.5; i += 0.25) {
+    glVertex3f(i, 0, 2.5); glVertex3f(i, 0, -2.5);
+    glVertex3f(2.5, 0, i); glVertex3f(-2.5, 0, i);
+  }
+  glEnd();
+
+  // Draw the tetrahedron.  It is a four sided figure, so when defining it
+  // with a triangle strip we have to repeat the last two vertices.
+  glBegin(GL_TRIANGLE_STRIP);
+    glColor3f(1, 1, 1); glVertex3f(0, 2, 0);
+    glColor3f(1, 0, 0); glVertex3f(-1, 0, 1);
+    glColor3f(0, 1, 0); glVertex3f(1, 0, 1);
+    glColor3f(0, 0, 1); glVertex3f(0, 0, -1.4);
+    glColor3f(1, 1, 1); glVertex3f(0, 2, 0);
+    glColor3f(1, 0, 0); glVertex3f(-1, 0, 1);
+  glEnd();
+
+  glFlush();
+}
+
+// Sets up global attributes like clear color and drawing color, enables and
+// initializes any needed modes (in this case we want backfaces culled), and
+// sets up the desired projection and modelview matrices. It is cleaner to
+// define these operations in a function separate from main().
+void init() {
+
+  // Set the current clear color to sky blue and the current drawing color to
+  // white.
+  glClearColor(0.1, 0.39, 0.88, 1.0);
+  glColor3f(1.0, 1.0, 1.0);
+
+  // Tell the rendering engine not to draw backfaces.  Without this code,
+  // all four faces of the tetrahedron would be drawn and it is possible
+  // that faces farther away could be drawn after nearer to the viewer.
+  // Since there is only one closed polyhedron in the whole scene,
+  // eliminating the drawing of backfaces gives us the realism we need.
+  // THIS DOES NOT WORK IN GENERAL.
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  // Set the camera lens so that we have a perspective viewing volume whose
+  // horizontal bounds at the near clipping plane are -2..2 and vertical
+  // bounds are -1.5..1.5.  The near clipping plane is 1 unit from the camera
+  // and the far clipping plane is 40 units away.
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glFrustum(-2, 2, -1.5, 1.5, 1, 40);
+
+  // Set up transforms so that the tetrahedron which is defined right at
+  // the origin will be rotated and moved into the view volume.  First we
+  // rotate 70 degrees around y so we can see a lot of the left side.
+  // Then we rotate 50 degrees around x to "drop" the top of the pyramid
+  // down a bit.  Then we move the object back 3 units "into the screen".
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glTranslatef(0, 0, -3);
+  glRotatef(50, 1, 0, 0);
+  glRotatef(70, 0, 1, 0);
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// does application initialization; enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowPosition(80, 80);
+  glutInitWindowSize(800, 600);
+  glutCreateWindow("A Simple Tetrahedron");
+  glutDisplayFunc(display);
+  init();
+  glutMainLoop();
+}
+3.
+// This is a simple introductory program; its main window contains a static
+// picture of a torus.  The program illustrates viewing by choosing a camera
+// setup with gluLookAt(), which is conceptually simpler than transforming
+// objects to move into a predefined view volume.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+// Clears the window and draws the torus.
+void display() {
+
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  // Draw a white torus of outer radius 3, inner radius 0.5 with 15 stacks
+  // and 30 slices.
+  glColor3f(1.0, 1.0, 1.0);
+  glutWireTorus(0.5, 3, 15, 30);
+
+  // Draw a red x-axis, a green y-axis, and a blue z-axis.  Each of the
+  // axes are ten units long.
+  glBegin(GL_LINES);
+    glColor3f(1, 0, 0); glVertex3f(0, 0, 0); glVertex3f(10, 0, 0);
+    glColor3f(0, 1, 0); glVertex3f(0, 0, 0); glVertex3f(0, 10, 0);
+    glColor3f(0, 0, 1); glVertex3f(0, 0, 0); glVertex3f(0, 0, 10);
+  glEnd();
+
+  glFlush();
+}
+
+// Sets up global attributes like clear color and drawing color, and sets up
+// the desired projection and modelview matrices.
+void init() {
+
+  // Set the current clear color to black and the current drawing color to
+  // white.
+  glClearColor(0.0, 0.0, 0.0, 1.0);
+  glColor3f(1.0, 1.0, 1.0);
+
+  // Set the camera lens to have a 60 degree (vertical) field of view, an
+  // aspect ratio of 4/3, and have everything closer than 1 unit to the
+  // camera and greater than 40 units distant clipped away.
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(60.0, 4.0/3.0, 1, 40);
+
+  // Position camera at (4, 6, 5) looking at (0, 0, 0) with the vector
+  // <0, 1, 0> pointing upward.
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  gluLookAt(4, 6, 5, 0, 0, 0, 0, 1, 0);
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// does application initialization; enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowPosition(80, 80);
+  glutInitWindowSize(800, 600);
+  glutCreateWindow("A Simple Torus");
+  glutDisplayFunc(display);
+  init();
+  glutMainLoop();
+}
+4.
+/ This program generates a Sierpinski gasket with 10000 points.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <cstdlib>
+
+// A simple two-dimensional point class to make life easy.  It allows you to
+// reference points with x and y coordinates instead of array indices) and
+// encapsulates a midpoint function.
+struct Point {
+  GLfloat x, y;
+  Point(GLfloat x = 0, GLfloat y = 0): x(x), y(y) {}
+  Point midpoint(Point p) {return Point((x + p.x) / 2.0, (y + p.y) / 2.0);}
+};
+
+// Draws a Sierpinski triangle with a fixed number of points. (Note that the
+// number of points is kept fairly small because a display callback should
+// NEVER run for too long.
+void display() {
+
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  static Point vertices[] = {Point(0, 0), Point(200, 500), Point(500, 0)};
+
+  // Compute and plot 100000 new points, starting (arbitrarily) with one of
+  // the vertices. Each point is halfway between the previous point and a
+  // randomly chosen vertex.
+  static Point p = vertices[0];
+  glBegin(GL_POINTS);
+  for (int k = 0; k < 100000; k++) {
+    p = p.midpoint(vertices[rand() % 3]);
+    glVertex2f(p.x, p.y);
+  }
+  glEnd();
+  glFlush();
+}
+
+// Performs application-specific initialization. Sets colors and sets up a
+// simple orthographic projection.
+void init() {
+
+  // Set a deep purple background and draw in a greenish yellow.
+  glClearColor(0.25, 0.0, 0.2, 1.0);
+  glColor3f(0.6, 1.0, 0.0);
+
+  // Set up the viewing volume: 500 x 500 x 1 window with origin lower left.
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0.0, 500.0, 0.0, 500.0, 0.0, 1.0);
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// does application initialization; enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowSize(500, 500);
+  glutInitWindowPosition(40, 40);
+  glutCreateWindow("Sierpinski Triangle");
+  glutDisplayFunc(display);
+  init();
+  glutMainLoop();
+}
+5.
+// This program is a modification and extension of an early program in Edward
+// Angel's book, Interactive Computer Graphics: A top-down approach using
+// OpenGL.  It plots the 3-D Sierpinski Tetrahedron using colors in a nice
+// way.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <cstdlib>
+
+// A simple three-dimensional point class to make life easy.  It allows you
+// to reference points with x and y coordinates instead of array indices) and
+// encapsulates a midpoint function.
+struct Point {
+  GLfloat x, y, z;
+  Point(GLfloat x, GLfloat y, GLfloat z): x(x), y(y), z(z) {}
+  Point midpoint(Point p) {return Point((x+p.x)/2, (y+p.y)/2, (z+p.z)/2);}
+};
+
+// Handles reshape requests by setting the the viewport to exactly match the
+// pixel coordinates, so we can draw in the whole window.  Then sets up a
+// simple perspective viewing volume to ensure that the pyramid will never
+// be distorted when the window is reshaped.  The particular settings chosen
+// ensure that the vertical extent of the pyramid will always be visible.
+void reshape(GLint w, GLint h) {
+  glViewport(0, 0, w, h);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(100.0, GLfloat(w)/GLfloat(h), 10.0, 1500.0);
+}
+
+// Handles display requests.  All it has to do is clear the viewport because
+// the real drawing is done in the idle callback.
+void display() {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+// Draws the "next 500 points".  The function contains locally the definitions
+// of the vertices and the current point as static objects so that their values
+// are retained between calls.
+void generateMorePoints() {
+
+  // The tetrahedron has four vertices.  We also have to keep track of the
+  // current point during the plotting.
+  static Point vertices[4] = {
+    Point(-250, -225, -200),
+    Point(-150, -225, -700),
+    Point(250, -225, -275),
+    Point(0, 450, -500)
+  };
+  static Point lastPoint = vertices[0];
+
+  // Here is the code to draw the "next 500 points".  The closer the point is
+  // to the camera, the brighter we make it.  The coloring technique is a
+  // quick hack which (unprofessionally) depends on the fact that the range
+  // of z-coordinates in the tetrahedron run from -200 to -700.  By adding
+  // 700 to any z-value and then dividing by 500, we get values in the range
+  // 0 to 1 - just perfect for coloring.
+  glBegin(GL_POINTS);
+  for (int i = 0; i <= 500; i++) {
+    lastPoint = lastPoint.midpoint(vertices[rand() % 4]);
+    GLfloat intensity = (700 + lastPoint.z) / 500.0;
+    glColor3f(intensity, intensity, 0.25);
+    glVertex3f(lastPoint.x, lastPoint.y, lastPoint.z);
+  }
+  glEnd();
+  glFlush();
+}
+
+// Performs application-specific initialization.  In this program we want to
+// do depth buffering, which has to be explicitly enabled in OpenGL.
+void init() {
+  glEnable(GL_DEPTH_TEST);
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// does application initialization; enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+  glutInitWindowSize(500, 500);
+  glutInitWindowPosition(0, 0);
+  glutCreateWindow("Sierpinski Tetrahedron");
+  glutDisplayFunc(display);
+  glutReshapeFunc(reshape);
+  glutIdleFunc(generateMorePoints);
+  init();
+  glutMainLoop();
+}
+6.
+// This program demonstrates double buffering for flicker-free animation.
+// It spins a white square on a black background.  It comes from Chapter 1
+// of the OpenGL Programming Guide, but I made some minor changes, and did
+// the animation properly, using timers, not the idle function.  Start the
+// animation with the left mouse button and stop it with the right.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+// Set this to true to animate.
+static bool spinning = true;
+
+// This is the number of frames per second to render.
+static const int FPS = 60;
+
+// This global variable keeps track of the current orientation of the square.
+// It is better to maintain the "state" of the animation globally rather
+// than trying to successively accumulate transformations.  Over a period of
+// time the approach of accumulating transformation matrices generally
+// degrades due to rounding errors.
+static GLfloat currentAngleOfRotation = 0.0;
+
+// Handles the window reshape event by first ensuring that the viewport fills
+// the entire drawing surface.  Then we use a simple orthographic projection
+// with a logical coordinate system ranging from -50..50 in the smaller of
+// the width or height, and scale the larger dimension to make the whole
+// window isotropic.
+void reshape(GLint w, GLint h) {
+  glViewport(0, 0, w, h);
+  GLfloat aspect = (GLfloat)w / (GLfloat)h;
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  if (w <= h) {
+    // width is smaller, go from -50 .. 50 in width
+    glOrtho(-50.0, 50.0, -50.0/aspect, 50.0/aspect, -1.0, 1.0);
+  } else {
+    // height is smaller, go from -50 .. 50 in height
+    glOrtho(-50.0*aspect, 50.0*aspect, -50.0, 50.0, -1.0, 1.0);
+  }
+}
+
+// Handles the display callback as follows: first clears the window, then draws
+// a 50 x 50 rectangle centered at the origin and rotated the correct number
+// of degrees around the vector <0,0,1>.  This function ends with a
+// 'glutSwapBuffers' call because when the display mode is double buffered,
+// drawing takes place on the back buffer; we have to call glutSwapBuffers()
+// to show what we have drawn.
+void display() {
+  glClear(GL_COLOR_BUFFER_BIT);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glRotatef(currentAngleOfRotation, 0.0, 0.0, 1.0);
+  glRectf(-25.0, -25.0, 25.0, 25.0);
+  glFlush();
+  glutSwapBuffers();
+}
+
+// Handles the timer by incrementing the angle of rotation and requesting the
+// window to display again, provided the program is in the spinning state.
+// Since the timer function is only called once, it sets the same function to
+// be called again.
+void timer(int v) {
+  if (spinning) {
+    currentAngleOfRotation += 1.0;
+    if (currentAngleOfRotation > 360.0) {
+      currentAngleOfRotation -= 360.0;
+    }
+    glutPostRedisplay();
+  }
+  glutTimerFunc(1000/FPS, timer, v);
+}
+
+// Handles mouse events as follows: when the left button is pressed, generate
+// new animation frames while the application is idle; when the right button
+// is pressed, remove any idle-time callbacks, thus stopping the animation.
+void mouse(int button, int state, int x, int y) {
+  if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+    spinning = true;
+  } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+    spinning = false;
+  }
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+  glutInitWindowPosition(80, 80);
+  glutInitWindowSize(800, 500);
+  glutCreateWindow("Spinning Square");
+  glutReshapeFunc(reshape);
+  glutDisplayFunc(display);
+  glutTimerFunc(100, timer, 0);
+  glutMouseFunc(mouse);
+  glutMainLoop();
+}
+7.
+// This program is from the OpenGL Programming Guide.  It shows a robot arm
+// that you can rotate by pressing the arrow keys.
+
+#ifdef __APPLE_CC__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+// The robot arm is specified by (1) the angle that the upper arm makes
+// relative to the x-axis, called shoulderAngle, and (2) the angle that the
+// lower arm makes relative to the upper arm, called elbowAngle.  These angles
+// are adjusted in 5 degree increments by a keyboard callback.
+static int shoulderAngle = 0, elbowAngle = 0;
+
+// Handles the keyboard event: the left and right arrows bend the elbow, the
+// up and down keys bend the shoulder.
+void special(int key, int, int) {
+  switch (key) {
+    case GLUT_KEY_LEFT: (elbowAngle += 5) %= 360; break;
+    case GLUT_KEY_RIGHT: (elbowAngle -= 5) %= 360; break;
+    case GLUT_KEY_UP: (shoulderAngle += 5) %= 360; break;
+    case GLUT_KEY_DOWN: (shoulderAngle -= 5) %= 360; break;
+    default: return;
+  }
+  glutPostRedisplay();
+}
+
+// wireBox(w, h, d) makes a wireframe box with width w, height h and
+// depth d centered at the origin.  It uses the GLUT wire cube function.
+// The calls to glPushMatrix and glPopMatrix are essential here; they enable
+// this function to be called from just about anywhere and guarantee that
+// the glScalef call does not pollute code that follows a call to myWireBox.
+void wireBox(GLdouble width, GLdouble height, GLdouble depth) {
+  glPushMatrix();
+  glScalef(width, height, depth);
+  glutWireCube(1.0);
+  glPopMatrix();
+}
+
+// Displays the arm in its current position and orientation.  The whole
+// function is bracketed by glPushMatrix and glPopMatrix calls because every
+// time we call it we are in an "environment" in which a gluLookAt is in
+// effect.  (Note that in particular, replacing glPushMatrix with
+// glLoadIdentity makes you lose the camera setting from gluLookAt).
+void display() {
+
+  glClear(GL_COLOR_BUFFER_BIT);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+
+  // Draw the upper arm, rotated shoulder degrees about the z-axis.  Note that
+  // the thing about glutWireBox is that normally its origin is in the middle
+  // of the box, but we want the "origin" of our box to be at the left end of
+  // the box, so it needs to first be shifted 1 unit in the x direction, then
+  // rotated.
+  glRotatef((GLfloat)shoulderAngle, 0.0, 0.0, 1.0);
+  glTranslatef(1.0, 0.0, 0.0);
+  wireBox(2.0, 0.4, 1.0);
+
+  // Now we are ready to draw the lower arm.  Since the lower arm is attached
+  // to the upper arm we put the code here so that all rotations we do are
+  // relative to the rotation that we already made above to orient the upper
+  // arm.  So, we want to rotate elbow degrees about the z-axis.  But, like
+  // before, the anchor point for the rotation is at the end of the box, so
+  // we translate <1,0,0> before rotating.  But after rotating we have to
+  // position the lower arm at the end of the upper arm, so we have to
+  // translate it <1,0,0> again.
+  glTranslatef(1.0, 0.0, 0.0);
+  glRotatef((GLfloat)elbowAngle, 0.0, 0.0, 1.0);
+  glTranslatef(1.0, 0.0, 0.0);
+  wireBox(2.0, 0.4, 1.0);
+
+  glPopMatrix();
+  glFlush();
+}
+
+// Handles the reshape event by setting the viewport so that it takes up the
+// whole visible region, then sets the projection matrix to something reason-
+// able that maintains proper aspect ratio.
+void reshape(GLint w, GLint h) {
+  glViewport(0, 0, w, h);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(65.0, GLfloat(w)/GLfloat(h), 1.0, 20.0);
+}
+
+// Perfroms application specific initialization: turn off smooth shading,
+// sets the viewing transformation once and for all.  In this application we
+// won't be moving the camera at all, so it makes sense to do this.
+void init() {
+  glShadeModel(GL_FLAT);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  gluLookAt(1,2,8, 0,0,0, 0,1,0);
+}
+
+// Initializes GLUT, the display mode, and main window; registers callbacks;
+// does application initialization; enters the main event loop.
+int main(int argc, char** argv) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowPosition(80, 80);
+  glutInitWindowSize(800, 600);
+  glutCreateWindow("Robot Arm");
+  glutDisplayFunc(display);
+  glutReshapeFunc(reshape);
+  glutSpecialFunc(special);
+  init();
+  glutMainLoop();
+}
